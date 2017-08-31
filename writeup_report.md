@@ -63,9 +63,9 @@ I used a combination of sobel x derivative sobel on l-channel and gradient thres
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for perspective transform includes two functions `perpective_tranform_coords()` and `warp_image`, which appears in 9 and 10 code cells of the notebook fil.  The `perpective_tranform_coords()` function takes an image (`img`) and returns the src and dst corners points for warping an image.
+The code for perspective transform includes two functions `perpective_tranform_coords()` and `warp_image`, which appears in 9 and 10 code cells of the notebook file "./Advanced-Lane-Finding.ipynb".  The `perpective_tranform_coords()` function takes an image and returns the src and dst corners points for warping an image.
 
- The `warped()` method takes an image, it uses the `perpective_tranform_coords()` for src and dst points. It then calls OpenCV's `cv2.getPerspectiveTransform` and `cv2.getPerspectiveTransform` to get warping and inverse warping matrices. Finally it calls `cv2.warpPerspective` to warp the input image using M matrix.
+ The `warped()` method takes an image, it uses the `perpective_tranform_coords()` for src and dst points. It then calls OpenCV's `cv2.getPerspectiveTransform` and `cv2.getPerspectiveTransform` to get warping and inverse warping matrices. Finally, it calls `cv2.warpPerspective` to warp the input image using M matrix.
 
  Here's an example of my output for this step.
 ![alt text][image5]
@@ -76,17 +76,19 @@ I verified that my perspective transform was working as expected by drawing the 
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-To find the lane pixels, I have made use of Line class to save the latest generated polynomial fit result. I have used methods `perform_window_slide()` and `update_polyfit_models()` during the pipeline to generate and update fit models. These methods are available in code cells 12 and 14.
+To find the lane pixels, I have made use of Line class to save the latest generated polynomial fit result. I have used methods `perform_window_slide()` and `update_polyfit_models()` during the pipeline to generate and update fit models. These methods are available in code cells 12 and 14 in notebool file "./Advanced-Lane-Finding.ipynb".
 
-When the lane line fit models are not present (For the first frame or due to the outlier frames), we will use `perform_window_slide()` operation to generate a polynomial fit model. This functions makes use of histogram to capture peak values in the first and second halfs of the histogram and use those to estimate the best avg lanes pixels. It then moves above the avg lanes pixel points for until it reaches to the top of the image.
+When the lane line fit models are not present (For the first frame or due to the outlier frames), we will use `perform_window_slide()` operation to generate a polynomial fit model. This functions makes use of histogram to capture peak values in the first and second halfs of the histogram and use those to estimate the best avg lanes pixels. It then moves above the avg lanes pixel points for the next frame until it reaches to the top of the image.
 
  Here's an example of my output for this step.
 ![alt text][image6]
 
-Once the polynomial fit model is generated, we will make use of it to estimate the lane pixel positions.
+Once the polynomial fit model is generated, we will make use it to estimate the lane pixel positions in the next video frame in method `update_polyfit_models()`.
 
  Here's an example of my output for this step.
 ![alt text][image7]
+
+For various reasons, if the output from `update_polyfit_models()` is not valid, we will reset the last detected fit inside Line model class and perform `perform_window_slide()` again.
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
@@ -100,11 +102,11 @@ Also, we made sure to convert pixels to real world values while generating left 
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-The method `process_image()` inside code cell 21, return the final output image with lane polygon plotted onto the real world image.
+The method `process_image()` inside code cell 21, returns the final output image with lane polygon plotted onto the real world image.
 
-To properly plot polyfill shape on to the actual real world image, i have used the method `convert_to_real_space()` which takes the inverse matrix value returned from `warp_img()` method to perform this.
+To properly plot polyfill shape on to the actual real world image, i have used the method `convert_to_real_space()` which takes the inverse matrix value returned from `warp_img()` method to perform this task with `cv2.warpPerspective` method.
 
-.  Here is an example of my result on a test image:
+.  Here is the final result for one of the image from video pipeline:
 
 ![alt text][image8]
 
