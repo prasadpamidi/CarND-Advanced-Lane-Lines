@@ -1,4 +1,6 @@
 ## Advanced Lane Finding
+[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
+
 
 [//]: # (Image References)
 
@@ -12,6 +14,7 @@
 [image8]: ./output_images/final_result_output.png "Final Result Output Visual"
 [image9]: ./output_images/radius_curvature_formula.png "Radius of Curvature Formula"
 [video1]: ./project_video.mp4 "Video"
+
 ---
 
 ### README
