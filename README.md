@@ -1,35 +1,113 @@
 ## Advanced Lane Finding
-[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
+[//]: # (Image References)
 
-In this project, your goal is to write a software pipeline to identify the lane boundaries in a video, but the main output or product we want you to create is a detailed writeup of the project.  Check out the [writeup template](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) for this project and use it as a starting point for creating your own writeup.  
-
-Creating a great writeup:
+[image1]: ./output_images/undistorted_chess_board.png "Undistorted Chessboard"
+[image2]: ./output_images/undistorted_pipeline.png "Road Undistorted"
+[image3]: ./output_images/binary_threshold_output.png "Binary Example"
+[image4]: ./output_images/Perspective_Src_Dst_Pts_Mapping.png "Perspective Points Mapping"
+[image5]: ./output_images/warp_output.png "Warping Result Output Visual"
+[image6]: ./output_images/window_slide_output.png "Window slide operation Output Visual"
+[image7]: ./output_images/polynomial_fit_output.png "PolynomialFit Lane approximation operation Output Visual"
+[image8]: ./output_images/final_result_output.png "Final Result Output Visual"
+[image9]: ./output_images/radius_curvature_formula.png "Radius of Curvature Formula"
+[video1]: ./project_video.mp4 "Video"
 ---
-A great writeup should include the rubric points as well as your description of how you addressed each point.  You should include a detailed description of the code used in each step (with line-number references and code snippets where necessary), and links to other supporting documents or external references.  You should include images in your writeup to demonstrate how your code works with examples.  
 
-All that said, please be concise!  We're not looking for you to write a book here, just a brief description of how you passed each rubric point, and references to the relevant code :). 
+### README
 
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup.
+### Camera Calibration
 
-The Project
+#### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
+
+The code for this step is contained in the third code cell of the IPython notebook located in "./Advanced-Lane-Finding.ipynb".
+
+I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.
+
+I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
+
+![alt text][image1]
+
+### Pipeline (single images)
+
+#### 1. Provide an example of a distortion-corrected image.
+
+To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
+![alt text][image2]
+
+#### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
+
+I used a combination of sobel x derivative sobel on l-channel and gradient thresholds on s-channel to generate a binary image (thresholding steps in cell index 7 inside method `binary_tranform`).  Here's an example of my output for this step.
+
+![alt text][image3]
+
+#### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
+
+The code for perspective transform includes two functions `perpective_tranform_coords()` and `warp_image`, which appears in 9 and 10 code cells of the notebook file "./Advanced-Lane-Finding.ipynb".  The `perpective_tranform_coords()` function takes an image and returns the src and dst corners points for warping an image.
+
+ The `warped()` method takes an image, it uses the `perpective_tranform_coords()` for src and dst points. It then calls OpenCV's `cv2.getPerspectiveTransform` and `cv2.getPerspectiveTransform` to get warping and inverse warping matrices. Finally, it calls `cv2.warpPerspective` to warp the input image using M matrix.
+
+ Here's an example of my output for this step.
+![alt text][image5]
+
+I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a saved pipeline image and its warped counterpart to verify that the lines appear parallel in the warped image.
+
+![alt text][image4]
+
+#### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
+
+To find the lane pixels, I have made use of Line class to save the latest generated polynomial fit result. I have used methods `perform_window_slide()` and `update_polyfit_models()` during the pipeline to generate and update fit models. These methods are available in code cells 12 and 14 in notebool file "./Advanced-Lane-Finding.ipynb".
+
+When the lane line fit models are not present (For the first frame or due to the outlier frames), we will use `perform_window_slide()` operation to generate a polynomial fit model. This functions makes use of histogram to capture peak values in the first and second halfs of the histogram and use those to estimate the best avg lanes pixels. It then moves above the avg lanes pixel points for the next frame until it reaches to the top of the image.
+
+ Here's an example of my output for this step.
+![alt text][image6]
+
+Once the polynomial fit model is generated, we will make use it to estimate the lane pixel positions in the next video frame in method `update_polyfit_models()`.
+
+ Here's an example of my output for this step.
+![alt text][image7]
+
+For various reasons, if the output from `update_polyfit_models()` is not valid, we will reset the last detected fit inside Line model class and perform `perform_window_slide()` again.
+
+#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+
+The method `calculate_curvature()` is used to calculate radius of curvature for a given image along with left and right polynomial fits.
+
+I used the suggested derivate formula over second degree polynomial as shown below.
+
+![alt text][image9]
+
+Also, we made sure to convert pixels to real world values while generating left and right curvature radius as these gets mapped to the real world image.
+
+#### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
+
+The method `process_image()` inside code cell 21, returns the final output image with lane polygon plotted onto the real world image.
+
+To properly plot polyfill shape on to the actual real world image, i have used the method `convert_to_real_space()` which takes the inverse matrix value returned from `warp_img()` method to perform this task with `cv2.warpPerspective` method.
+
+.  Here is the final result for one of the image from video pipeline:
+
+![alt text][image8]
+
 ---
 
-The goals / steps of this project are the following:
+### Pipeline (video)
 
-* Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
-* Apply a distortion correction to raw images.
-* Use color transforms, gradients, etc., to create a thresholded binary image.
-* Apply a perspective transform to rectify binary image ("birds-eye view").
-* Detect lane pixels and fit to find the lane boundary.
-* Determine the curvature of the lane and vehicle position with respect to center.
-* Warp the detected lane boundaries back onto the original image.
-* Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
+#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-The images for camera calibration are stored in the folder called `camera_cal`.  The images in `test_images` are for testing your pipeline on single frames.  If you want to extract more test images from the videos, you can simply use an image writing method like `cv2.imwrite()`, i.e., you can read the video in frame by frame as usual, and for frames you want to save for later you can write to an image file.  
+Here's a [link to my video result](./project_video_output.mp4)
 
-To help the reviewer examine your work, please save examples of the output from each stage of your pipeline in the folder called `ouput_images`, and include a description in your writeup for the project of what each image shows.    The video called `project_video.mp4` is the video your pipeline should work well on.  
+---
 
-The `challenge_video.mp4` video is an extra (and optional) challenge for you if you want to test your pipeline under somewhat trickier conditions.  The `harder_challenge.mp4` video is another optional challenge and is brutal!
+### Discussion
 
-If you're feeling ambitious (again, totally optional though), don't stop there!  We encourage you to go out and take video of your own, calibrate your camera and show us how you would implement this project from scratch!
+#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+
+I have noticed significant issues while running this pipeline on the challenge videos. 
+
+I believe, it might be better to clearly extract the yellow and white lanes lines to discard border shadows etc.
+
+I also should use the best_fit model computed over n polyfit models instead of using the most recent one. This might add more smoothness to plotted shaped.
+
+I also should verify if the lane lines are parallel(approx).
